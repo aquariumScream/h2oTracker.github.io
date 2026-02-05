@@ -19,202 +19,28 @@
             overflow: hidden;
             background-color: #f0f0f0;
         }
+
+        /* Reset All Button Style */
+        #reset-all-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            padding: 10px 15px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        #reset-all-btn:hover { background-color: #d32f2f; }
+        #reset-all-btn:active { transform: scale(0.95); }
         
         .dispenser {
             position: absolute;
             width: 80px;
             border: 2px solid #333;
             border-radius: 10px;
-            padding: 10px;
-            text-align: center;
-            background-color: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            cursor: grab;
-            user-select: none;
-            touch-action: none;
-        }
-        
-        .dispenser:active { cursor: grabbing; }
-        
-        .dispenser button {
-            padding: 8px 12px;
-            margin: 5px 0;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 12px;
-        }
-        
-        .dispenser p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #333;
-            pointer-events: none;
-        }
-
-        /* Default fallback positions */
-        #dispenser1 { top: 5%; left: 2%; }
-        #dispenser2 { top: 15%; left: 2%; }
-        #dispenser3 { top: 25%; left: 2%; }
-        #dispenser4 { top: 35%; left: 2%; }
-        #dispenser5 { top: 45%; left: 2%; }
-        #dispenser6 { top: 55%; left: 2%; }
-        #dispenser7 { top: 65%; left: 2%; }
-        #dispenser8 { top: 75%; left: 2%; }
-        #dispenser9 { top: 85%; left: 2%; }
-    </style>
-</head>
-<body>
-
-    <div id="dispenser1" class="dispenser"><button onclick="handleReset('wipe1')">Reset</button><p id="timer1">0s</p></div>
-    <div id="dispenser2" class="dispenser"><button onclick="handleReset('wipe2')">Reset</button><p id="timer2">0s</p></div>
-    <div id="dispenser3" class="dispenser"><button onclick="handleReset('wipe3')">Reset</button><p id="timer3">0s</p></div>
-    <div id="dispenser4" class="dispenser"><button onclick="handleReset('wipe4')">Reset</button><p id="timer4">0s</p></div>
-    <div id="dispenser5" class="dispenser"><button onclick="handleReset('wipe5')">Reset</button><p id="timer5">0s</p></div>
-    <div id="dispenser6" class="dispenser"><button onclick="handleReset('wipe6')">Reset</button><p id="timer6">0s</p></div>
-    <div id="dispenser7" class="dispenser"><button onclick="handleReset('wipe7')">Reset</button><p id="timer7">0s</p></div>
-    <div id="dispenser8" class="dispenser"><button onclick="handleReset('wipe8')">Reset</button><p id="timer8">0s</p></div>
-    <div id="dispenser9" class="dispenser"><button onclick="handleReset('wipe9')">Reset</button><p id="timer9">0s</p></div>
-
-    <script>
-        const BIN_ID = "69845e10d0ea881f40a27d55";
-        const MASTER_KEY = "$2a$10$hL5VMPRJSM1IAtw2DZ70GeBlpHNxWgMQU0VasqFgvRhiakRmmid.O";
-        const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
-
-        let cloudData = { timers: {}, positions: {} };
-        let dragging = null;
-        let offset = { x: 0, y: 0 };
-        let isDragging = false;
-
-        async function fetchCloudData() {
-            try {
-                const response = await fetch(BIN_URL + "/latest", {
-                    headers: { "X-Master-Key": MASTER_KEY }
-                });
-                const json = await response.json();
-                
-                // DATA SANITIZER: If the JSON is old-style or messy, fix it
-                let raw = json.record;
-                cloudData.timers = raw.timers || {};
-                cloudData.positions = raw.positions || {};
-
-                // Update screen with shared positions
-                if (!dragging) {
-                    Object.keys(cloudData.positions).forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) {
-                            el.style.left = cloudData.positions[id].left;
-                            el.style.top = cloudData.positions[id].top;
-                        }
-                    });
-                }
-                updateDisplays();
-            } catch (e) { console.error("Fetch failed", e); }
-        }
-
-        async function pushCloudData() {
-            // Force a clean structure before sending
-            const cleanData = {
-                timers: cloudData.timers,
-                positions: cloudData.positions
-            };
-
-            try {
-                await fetch(BIN_URL, {
-                    method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'X-Master-Key': MASTER_KEY 
-                    },
-                    body: JSON.stringify(cleanData)
-                });
-            } catch (e) { console.error("Save failed", e); }
-        }
-
-        function handleReset(wipeId) {
-            if (!isDragging) {
-                cloudData.timers[wipeId] = Date.now();
-                updateDisplays();
-                pushCloudData();
-            }
-        }
-
-        function updateDisplays() {
-            for (let i = 1; i <= 9; i++) {
-                const wipeId = 'wipe' + i;
-                const lastTime = cloudData.timers[wipeId];
-                const elapsed = lastTime ? Math.floor((Date.now() - lastTime) / 1000) : 0;
-                document.getElementById('timer' + i).textContent = formatTime(elapsed);
-                const dispenser = document.getElementById('dispenser' + i);
-                dispenser.style.backgroundColor = elapsed > 86400 ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
-            }
-        }
-
-        function formatTime(seconds) {
-            const d = Math.floor(seconds / 86400);
-            const h = Math.floor((seconds % 86400) / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = seconds % 60;
-            let res = [];
-            if (d > 0) res.push(d + 'd');
-            if (h > 0) res.push(h + 'h');
-            if (m > 0) res.push(m + 'm');
-            res.push(s + 's');
-            return res.join(' ');
-        }
-
-        function startDrag(e) {
-            const event = e.type.includes('touch') ? e.touches[0] : e;
-            if (e.target.tagName === 'BUTTON') return;
-            
-            dragging = e.currentTarget;
-            isDragging = false;
-            const rect = dragging.getBoundingClientRect();
-            offset.x = event.clientX - rect.left;
-            offset.y = event.clientY - rect.top;
-        }
-
-        function moveDrag(e) {
-            if (!dragging) return;
-            isDragging = true;
-            const event = e.type.includes('touch') ? e.touches[0] : e;
-            
-            const xPct = (event.clientX - offset.x) / window.innerWidth * 100;
-            const yPct = (event.clientY - offset.y) / window.innerHeight * 100;
-            
-            dragging.style.left = xPct + '%';
-            dragging.style.top = yPct + '%';
-            
-            if (e.cancelable) e.preventDefault();
-        }
-
-        function endDrag() {
-            if (dragging && isDragging) {
-                cloudData.positions[dragging.id] = {
-                    left: dragging.style.left,
-                    top: dragging.style.top
-                };
-                pushCloudData();
-            }
-            setTimeout(() => { isDragging = false; }, 100);
-            dragging = null;
-        }
-
-        document.querySelectorAll('.dispenser').forEach(el => {
-            el.addEventListener('mousedown', startDrag);
-            el.addEventListener('touchstart', startDrag, {passive: false});
-        });
-
-        document.addEventListener('mousemove', moveDrag);
-        document.addEventListener('touchmove', moveDrag, {passive: false});
-        document.addEventListener('mouseup', endDrag);
-        document.addEventListener('touchend', endDrag);
-
-        fetchCloudData();
-        setInterval(updateDisplays, 1000);
-        setInterval(fetchCloudData, 5000);
-    </script>
-</body>
-</html>
