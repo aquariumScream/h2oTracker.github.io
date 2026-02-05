@@ -3,155 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>H2O Tracker</title>
+    <title>H2O Tracker - Sync</title>
     <style>
+        /* [Keeping your existing styles exactly as they were] */
         body {
             background-image: url('https://raw.githubusercontent.com/aquariumScream/h2oTracker.github.io/refs/heads/main/floor_plan.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+            font-family: Arial, sans-serif; margin: 0; padding: 0; position: relative;
+            width: 100vw; height: 100vh; overflow: hidden;
         }
-        
         .dispenser {
-            position: absolute;
-            width: 80px;
-            border: 2px solid #333;
-            border-radius: 10px;
-            padding: 10px;
-            text-align: center;
-            background-color: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            cursor: grab;
-            user-select: none;
+            position: absolute; width: 80px; border: 2px solid #333; border-radius: 10px;
+            padding: 10px; text-align: center; background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); cursor: grab; user-select: none;
         }
-        
-        .dispenser:active {
-            cursor: grabbing;
-        }
-        
+        .dispenser:active { cursor: grabbing; }
         .dispenser button {
-            padding: 8px 12px;
-            margin: 5px 0;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 12px;
+            padding: 8px 12px; margin: 5px 0; cursor: pointer; background-color: #4CAF50;
+            color: white; border: none; border-radius: 5px; font-size: 12px;
         }
-        
-        .dispenser button:hover {
-            background-color: #45a049;
-        }
-        
-        .dispenser p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #333;
-        }
-        
-        #dispenser1 { top: 5%; left: 2%; }
-        #dispenser2 { top: 13%; left: 2%; }
-        #dispenser3 { top: 21%; left: 2%; }
-        #dispenser4 { top: 29%; left: 2%; }
-        #dispenser5 { top: 37%; left: 2%; }
-        #dispenser6 { top: 45%; left: 2%; }
-        #dispenser7 { top: 53%; left: 2%; }
-        #dispenser8 { top: 61%; left: 2%; }
+        .dispenser button:hover { background-color: #45a049; }
+        .dispenser p { margin: 5px 0; font-size: 14px; color: #333; }
+        #dispenser1 { top: 5%; left: 2%; } #dispenser2 { top: 13%; left: 2%; }
+        #dispenser3 { top: 21%; left: 2%; } #dispenser4 { top: 29%; left: 2%; }
+        #dispenser5 { top: 37%; left: 2%; } #dispenser6 { top: 45%; left: 2%; }
+        #dispenser7 { top: 53%; left: 2%; } #dispenser8 { top: 61%; left: 2%; }
         #dispenser9 { top: 69%; left: 2%; }
     </style>
 </head>
 <body>
-    <div id="dispenser1" class="dispenser">
-        <button onclick="handleReset(event, 'wipe1')">Reset</button>
-        <p id="timer1">0s</p>
-    </div>
-    
-    <div id="dispenser2" class="dispenser">
-        <button onclick="handleReset(event, 'wipe2')">Reset</button>
-        <p id="timer2">0s</p>
-    </div>
-    
-    <div id="dispenser3" class="dispenser">
-        <button onclick="handleReset(event, 'wipe3')">Reset</button>
-        <p id="timer3">0s</p>
-    </div>
-    
-    <div id="dispenser4" class="dispenser">
-        <button onclick="handleReset(event, 'wipe4')">Reset</button>
-        <p id="timer4">0s</p>
-    </div>
-    
-    <div id="dispenser5" class="dispenser">
-        <button onclick="handleReset(event, 'wipe5')">Reset</button>
-        <p id="timer5">0s</p>
-    </div>
-    
-    <div id="dispenser6" class="dispenser">
-        <button onclick="handleReset(event, 'wipe6')">Reset</button>
-        <p id="timer6">0s</p>
-    </div>
-    
-    <div id="dispenser7" class="dispenser">
-        <button onclick="handleReset(event, 'wipe7')">Reset</button>
-        <p id="timer7">0s</p>
-    </div>
-    
-    <div id="dispenser8" class="dispenser">
-        <button onclick="handleReset(event, 'wipe8')">Reset</button>
-        <p id="timer8">0s</p>
-    </div>
-    
-    <div id="dispenser9" class="dispenser">
-        <button onclick="handleReset(event, 'wipe9')">Reset</button>
-        <p id="timer9">0s</p>
-    </div>
+    <div id="dispenser1" class="dispenser"><button onclick="handleReset(event, 'wipe1')">Reset</button><p id="timer1">0s</p></div>
+    <div id="dispenser2" class="dispenser"><button onclick="handleReset(event, 'wipe2')">Reset</button><p id="timer2">0s</p></div>
+    <div id="dispenser3" class="dispenser"><button onclick="handleReset(event, 'wipe3')">Reset</button><p id="timer3">0s</p></div>
+    <div id="dispenser4" class="dispenser"><button onclick="handleReset(event, 'wipe4')">Reset</button><p id="timer4">0s</p></div>
+    <div id="dispenser5" class="dispenser"><button onclick="handleReset(event, 'wipe5')">Reset</button><p id="timer5">0s</p></div>
+    <div id="dispenser6" class="dispenser"><button onclick="handleReset(event, 'wipe6')">Reset</button><p id="timer6">0s</p></div>
+    <div id="dispenser7" class="dispenser"><button onclick="handleReset(event, 'wipe7')">Reset</button><p id="timer7">0s</p></div>
+    <div id="dispenser8" class="dispenser"><button onclick="handleReset(event, 'wipe8')">Reset</button><p id="timer8">0s</p></div>
+    <div id="dispenser9" class="dispenser"><button onclick="handleReset(event, 'wipe9')">Reset</button><p id="timer9">0s</p></div>
 
     <script>
+        // --- CLOUD CONFIGURATION ---
+        const BIN_ID = "69845e10d0ea881f40a27d55";
+        const MASTER_KEY = "$2a$10$hL5VMPRJSM1IAtw2DZ70GeBlpHNxWgMQU0VasqFgvRhiakRmmid.O";
+        const BIN_URL = `https://api.jsonbin.io/v3/b/69845e10d0ea881f40a27d55`;
+
         const wipes = ['wipe1', 'wipe2', 'wipe3', 'wipe4', 'wipe5', 'wipe6', 'wipe7', 'wipe8', 'wipe9'];
+        let cloudData = {}; // This stores the shared timestamps
         let dragging = null;
         let offset = { x: 0, y: 0 };
         let isDragging = false;
-        
+
+        // 1. PULL FROM CLOUD
+        async function fetchCloudData() {
+            try {
+                const response = await fetch(BIN_URL + "/latest", {
+                    headers: { "X-Master-Key": MASTER_KEY }
+                });
+                const json = await response.json();
+                cloudData = json.record;
+                updateDisplays();
+            } catch (e) { console.error("Cloud Fetch Failed", e); }
+        }
+
+        // 2. PUSH TO CLOUD
+        async function pushCloudData() {
+            try {
+                await fetch(BIN_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': MASTER_KEY
+                    },
+                    body: JSON.stringify(cloudData)
+                });
+            } catch (e) { console.error("Cloud Save Failed", e); }
+        }
+
         function handleReset(event, wipeId) {
             if (!isDragging) {
-                resetTimer(wipeId);
+                // Update locally first for instant feedback
+                cloudData[wipeId] = Date.now();
+                updateDisplays();
+                // Then send to everyone else
+                pushCloudData();
             }
         }
-        
-        function resetTimer(wipeId) {
-            localStorage.setItem(wipeId, Date.now());
-            updateDisplays();
-        }
-        
+
         function updateDisplays() {
             wipes.forEach((wipe, index) => {
-                const lastTime = localStorage.getItem(wipe);
+                const lastTime = cloudData[wipe];
                 const elapsed = lastTime ? Math.floor((Date.now() - lastTime) / 1000) : 0;
+                
                 const timerElement = document.getElementById('timer' + (index + 1));
                 timerElement.textContent = formatTime(elapsed);
-                const dispenserId = 'dispenser' + (index + 1);
-                const dispenser = document.getElementById(dispenserId);
+                
+                const dispenser = document.getElementById('dispenser' + (index + 1));
+                // Red background if over 24 hours
                 dispenser.style.backgroundColor = elapsed > 86400 ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
             });
         }
-        
+
+        // [Format and Position functions remain the same as your original]
+        function formatTime(seconds) {
+            const days = Math.floor(seconds / (24 * 3600));
+            seconds %= (24 * 3600);
+            const hours = Math.floor(seconds / 3600);
+            seconds %= 3600;
+            const minutes = Math.floor(seconds / 60);
+            seconds %= 60;
+            let result = '';
+            if (days > 0) result += `${days}d `;
+            if (hours > 0) result += `${hours}h `;
+            if (minutes > 0) result += `${minutes}m `;
+            result += `${seconds}s`;
+            return result.trim();
+        }
+
+        // Positions still save locally to the device (since different screens need different layouts)
         function savePosition(dispenserId) {
             const dispenser = document.getElementById(dispenserId);
-            const position = {
-                left: dispenser.style.left,
-                top: dispenser.style.top
-            };
+            const position = { left: dispenser.style.left, top: dispenser.style.top };
             localStorage.setItem('position_' + dispenserId, JSON.stringify(position));
         }
-        
+
         function loadPosition(dispenserId) {
             const saved = localStorage.getItem('position_' + dispenserId);
             if (saved) {
@@ -162,26 +137,9 @@
             }
         }
 
-        function formatTime(seconds) {
-            const days = Math.floor(seconds / (24 * 3600));
-            seconds %= (24 * 3600);
-            const hours = Math.floor(seconds / 3600);
-            seconds %= 3600;
-            const minutes = Math.floor(seconds / 60);
-            seconds %= 60;
-
-            let result = '';
-            if (days > 0) result += `${days}d `;
-            if (hours > 0) result += `${hours}h `;
-            if (minutes > 0) result += `${minutes}m `;
-            result += `${seconds}s`;
-
-            return result.trim();
-        }
-        
+        // Setup Dragging
         document.querySelectorAll('.dispenser').forEach(dispenser => {
             loadPosition(dispenser.id);
-            
             dispenser.addEventListener('mousedown', (e) => {
                 isDragging = false;
                 dragging = dispenser;
@@ -190,7 +148,7 @@
                 offset.y = e.clientY - rect.top;
             });
         });
-        
+
         document.addEventListener('mousemove', (e) => {
             if (dragging) {
                 isDragging = true;
@@ -198,16 +156,16 @@
                 dragging.style.top = (e.clientY - offset.y) + 'px';
             }
         });
-        
+
         document.addEventListener('mouseup', () => {
-            if (dragging) {
-                savePosition(dragging.id);
-            }
+            if (dragging) { savePosition(dragging.id); }
             dragging = null;
         });
-        
-        setInterval(updateDisplays, 1000);
-        updateDisplays();
+
+        // Initialize
+        fetchCloudData();
+        setInterval(updateDisplays, 1000); // Tick the clock
+        setInterval(fetchCloudData, 5000); // Sync from others every 5 seconds
     </script>
 </body>
 </html>
