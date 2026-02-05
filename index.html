@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>H2O Tracker - Final Sync</title>
+    <title>H2O Tracker - Responsive Sync</title>
     <style>
         body {
             background-image: url('https://raw.githubusercontent.com/aquariumScream/h2oTracker.github.io/refs/heads/main/floor_plan.png');
@@ -20,13 +20,12 @@
             background-color: #f0f0f0;
         }
 
-        /* Reset All Button Style */
         #reset-all-btn {
             position: absolute;
             top: 10px;
             left: 10px;
             z-index: 100;
-            padding: 10px 15px;
+            padding: 8px 12px;
             background-color: #f44336;
             color: white;
             border: none;
@@ -34,17 +33,16 @@
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            font-size: 12px;
         }
 
-        #reset-all-btn:hover { background-color: #d32f2f; }
-        #reset-all-btn:active { transform: scale(0.95); }
-        
+        /* DESKTOP BOX SIZE */
         .dispenser {
             position: absolute;
-            width: 80px;
+            width: 85px;
             border: 2px solid #333;
             border-radius: 10px;
-            padding: 10px;
+            padding: 8px;
             text-align: center;
             background-color: rgba(255, 255, 255, 0.9);
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -52,9 +50,28 @@
             user-select: none;
             touch-action: none;
         }
-        
+
+        /* MOBILE BOX SIZE & STYLES */
+        @media (max-width: 600px) {
+            .dispenser {
+                width: 60px; /* Smaller boxes for mobile */
+                padding: 5px;
+                border-width: 1.5px;
+            }
+            .dispenser button {
+                padding: 4px 6px !important;
+                font-size: 10px !important;
+            }
+            .dispenser p {
+                font-size: 11px !important;
+            }
+            #reset-all-btn {
+                padding: 6px 10px;
+                font-size: 10px;
+            }
+        }
+
         .dispenser:active { cursor: grabbing; }
-        
         .dispenser button {
             padding: 8px 12px;
             margin: 5px 0;
@@ -64,16 +81,11 @@
             border: none;
             border-radius: 5px;
             font-size: 12px;
+            width: 100%;
         }
-        
-        .dispenser p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #333;
-            pointer-events: none;
-        }
+        .dispenser p { margin: 5px 0; font-size: 13px; color: #333; pointer-events: none; font-weight: bold; }
 
-        /* Default fallback positions */
+        /* Default Layouts (Fallbacks) */
         #dispenser1 { top: 5%; left: 2%; }
         #dispenser2 { top: 15%; left: 2%; }
         #dispenser3 { top: 25%; left: 2%; }
@@ -87,7 +99,7 @@
 </head>
 <body>
 
-    <button id="reset-all-btn" onclick="resetAllTimers()">Reset All Timers</button>
+    <button id="reset-all-btn" onclick="resetAllTimers()">Reset All</button>
 
     <div id="dispenser1" class="dispenser"><button onclick="handleReset('wipe1')">Reset</button><p id="timer1">0s</p></div>
     <div id="dispenser2" class="dispenser"><button onclick="handleReset('wipe2')">Reset</button><p id="timer2">0s</p></div>
@@ -115,7 +127,6 @@
                     headers: { "X-Master-Key": MASTER_KEY }
                 });
                 const json = await response.json();
-                
                 let raw = json.record;
                 cloudData.timers = raw.timers || {};
                 cloudData.positions = raw.positions || {};
@@ -124,8 +135,18 @@
                     Object.keys(cloudData.positions).forEach(id => {
                         const el = document.getElementById(id);
                         if (el) {
-                            el.style.left = cloudData.positions[id].left;
-                            el.style.top = cloudData.positions[id].top;
+                            // Check if mobile or desktop positions exist
+                            const isMobile = window.innerWidth <= 600;
+                            const posKey = isMobile ? 'mobile' : 'desktop';
+                            
+                            if (cloudData.positions[id][posKey]) {
+                                el.style.left = cloudData.positions[id][posKey].left;
+                                el.style.top = cloudData.positions[id][posKey].top;
+                            } else if (typeof cloudData.positions[id].left === 'string') {
+                                // Backward compatibility for old single-position format
+                                el.style.left = cloudData.positions[id].left;
+                                el.style.top = cloudData.positions[id].top;
+                            }
                         }
                     });
                 }
@@ -134,19 +155,11 @@
         }
 
         async function pushCloudData() {
-            const cleanData = {
-                timers: cloudData.timers,
-                positions: cloudData.positions
-            };
-
             try {
                 await fetch(BIN_URL, {
                     method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'X-Master-Key': MASTER_KEY 
-                    },
-                    body: JSON.stringify(cleanData)
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
+                    body: JSON.stringify(cloudData)
                 });
             } catch (e) { console.error("Save failed", e); }
         }
@@ -159,13 +172,10 @@
             }
         }
 
-        // NEW: Reset All Function
         function resetAllTimers() {
-            if (confirm("Are you sure you want to reset ALL dispensers to 0s?")) {
+            if (confirm("Reset ALL dispensers?")) {
                 const now = Date.now();
-                for (let i = 1; i <= 9; i++) {
-                    cloudData.timers['wipe' + i] = now;
-                }
+                for (let i = 1; i <= 9; i++) cloudData.timers['wipe' + i] = now;
                 updateDisplays();
                 pushCloudData();
             }
@@ -198,7 +208,6 @@
         function startDrag(e) {
             const event = e.type.includes('touch') ? e.touches[0] : e;
             if (e.target.tagName === 'BUTTON') return;
-            
             dragging = e.currentTarget;
             isDragging = false;
             const rect = dragging.getBoundingClientRect();
@@ -210,19 +219,21 @@
             if (!dragging) return;
             isDragging = true;
             const event = e.type.includes('touch') ? e.touches[0] : e;
-            
             const xPct = (event.clientX - offset.x) / window.innerWidth * 100;
             const yPct = (event.clientY - offset.y) / window.innerHeight * 100;
-            
             dragging.style.left = xPct + '%';
             dragging.style.top = yPct + '%';
-            
             if (e.cancelable) e.preventDefault();
         }
 
         function endDrag() {
             if (dragging && isDragging) {
-                cloudData.positions[dragging.id] = {
+                const isMobile = window.innerWidth <= 600;
+                const posKey = isMobile ? 'mobile' : 'desktop';
+                
+                if (!cloudData.positions[dragging.id]) cloudData.positions[dragging.id] = {};
+                
+                cloudData.positions[dragging.id][posKey] = {
                     left: dragging.style.left,
                     top: dragging.style.top
                 };
@@ -236,7 +247,6 @@
             el.addEventListener('mousedown', startDrag);
             el.addEventListener('touchstart', startDrag, {passive: false});
         });
-
         document.addEventListener('mousemove', moveDrag);
         document.addEventListener('touchmove', moveDrag, {passive: false});
         document.addEventListener('mouseup', endDrag);
@@ -244,7 +254,7 @@
 
         fetchCloudData();
         setInterval(updateDisplays, 1000);
-        setInterval(fetchCloudData, 5000);
+        setInterval(fetchCloudData, 10000); // Increased sync to 10s to reduce API calls
     </script>
 </body>
 </html>
