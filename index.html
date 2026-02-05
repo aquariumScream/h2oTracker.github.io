@@ -3,338 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Sheets Tracker</title>
+    <title>H2O Tracker</title>
     <style>
-        * {
+        body {
+            background-image: url('https://raw.githubusercontent.com/aquariumScream/h2oTracker.github.io/refs/heads/main/floor_plan.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
         }
         
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        
-        .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 800px;
-            width: 100%;
-            padding: 40px;
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
+        .dispenser {
+            position: absolute;
+            width: 80px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 10px;
             text-align: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            cursor: grab;
+            user-select: none;
         }
         
-        .section {
-            margin-bottom: 30px;
+        .dispenser:active {
+            cursor: grabbing;
         }
         
-        .section h2 {
-            font-size: 18px;
-            color: #667eea;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        
-        input[type="text"], input[type="url"], textarea {
-            flex: 1;
-            min-width: 200px;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 14px;
-        }
-        
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        
-        button {
-            padding: 12px 24px;
-            background: #667eea;
+        .dispenser button {
+            padding: 8px 12px;
+            margin: 5px 0;
+            cursor: pointer;
+            background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.3s;
-            white-space: nowrap;
+            border-radius: 5px;
+            font-size: 12px;
         }
         
-        button:hover {
-            background: #764ba2;
+        .dispenser button:hover {
+            background-color: #45a049;
         }
         
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .output {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 6px;
-            margin-top: 15px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .status {
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            display: block;
-        }
-        
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            display: block;
-        }
-        
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            display: block;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        .dispenser p {
+            margin: 5px 0;
             font-size: 14px;
+            color: #333;
         }
         
-        th, td {
-            text-align: left;
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        th {
-            background: #667eea;
-            color: white;
-            font-weight: 600;
-        }
-        
-        tr:hover {
-            background: #f9f9f9;
-        }
+        #dispenser1 { top: 5%; left: 2%; }
+        #dispenser2 { top: 13%; left: 2%; }
+        #dispenser3 { top: 21%; left: 2%; }
+        #dispenser4 { top: 29%; left: 2%; }
+        #dispenser5 { top: 37%; left: 2%; }
+        #dispenser6 { top: 45%; left: 2%; }
+        #dispenser7 { top: 53%; left: 2%; }
+        #dispenser8 { top: 61%; left: 2%; }
+        #dispenser9 { top: 69%; left: 2%; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📊 Google Sheets Tracker</h1>
-        
-        <div class="status" id="status"></div>
-        
-        <!-- Setup Section -->
-        <div class="section">
-            <h2>🔑 Setup</h2>
-            <div class="input-group">
-                <input type="url" id="sheetsUrl" placeholder="Paste your Google Sheets URL or Share Link">
-                <button onclick="extractSheetId()">Extract ID</button>
-            </div>
-            <div class="input-group">
-                <input type="text" id="sheetId" placeholder="Or paste Sheet ID directly" style="flex: 2;">
-                <button onclick="saveSheetId()">Save Sheet ID</button>
-            </div>
-            <div class="output" id="setupOutput" style="display: none;"></div>
-        </div>
-        
-        <!-- Read Sheet Section -->
-        <div class="section">
-            <h2>📖 Read Sheet Data</h2>
-            <div class="input-group">
-                <input type="text" id="readRange" placeholder="Range (e.g., Sheet1!A1:D10)" value="Sheet1!A:F">
-                <button onclick="readSheet()">Read Data</button>
-            </div>
-            <div class="output" id="readOutput"></div>
-        </div>
-        
-        <!-- Write Sheet Section -->
-        <div class="section">
-            <h2>✍️ Write to Sheet</h2>
-            <div class="input-group">
-                <input type="text" id="writeRange" placeholder="Range (e.g., Sheet1!A1)" value="Sheet1!A1">
-            </div>
-            <div class="input-group">
-                <textarea id="writeData" placeholder="Enter data as JSON array: [[&quot;Name&quot;, &quot;Value&quot;], [&quot;John&quot;, 25]]"></textarea>
-            </div>
-            <button onclick="writeSheet()">Write Data</button>
-            <div class="output" id="writeOutput" style="display: none;"></div>
-        </div>
+    <div id="dispenser1" class="dispenser">
+        <button onclick="handleReset(event, 'wipe1')">Reset</button>
+        <p id="timer1">0s</p>
+    </div>
+    
+    <div id="dispenser2" class="dispenser">
+        <button onclick="handleReset(event, 'wipe2')">Reset</button>
+        <p id="timer2">0s</p>
+    </div>
+    
+    <div id="dispenser3" class="dispenser">
+        <button onclick="handleReset(event, 'wipe3')">Reset</button>
+        <p id="timer3">0s</p>
+    </div>
+    
+    <div id="dispenser4" class="dispenser">
+        <button onclick="handleReset(event, 'wipe4')">Reset</button>
+        <p id="timer4">0s</p>
+    </div>
+    
+    <div id="dispenser5" class="dispenser">
+        <button onclick="handleReset(event, 'wipe5')">Reset</button>
+        <p id="timer5">0s</p>
+    </div>
+    
+    <div id="dispenser6" class="dispenser">
+        <button onclick="handleReset(event, 'wipe6')">Reset</button>
+        <p id="timer6">0s</p>
+    </div>
+    
+    <div id="dispenser7" class="dispenser">
+        <button onclick="handleReset(event, 'wipe7')">Reset</button>
+        <p id="timer7">0s</p>
+    </div>
+    
+    <div id="dispenser8" class="dispenser">
+        <button onclick="handleReset(event, 'wipe8')">Reset</button>
+        <p id="timer8">0s</p>
+    </div>
+    
+    <div id="dispenser9" class="dispenser">
+        <button onclick="handleReset(event, 'wipe9')">Reset</button>
+        <p id="timer9">0s</p>
     </div>
 
     <script>
-        let currentSheetId = localStorage.getItem('sheetId') || '';
+        const wipes = ['wipe1', 'wipe2', 'wipe3', 'wipe4', 'wipe5', 'wipe6', 'wipe7', 'wipe8', 'wipe9'];
+        let dragging = null;
+        let offset = { x: 0, y: 0 };
+        let isDragging = false;
         
-        function showStatus(message, type = 'info') {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = 'status ' + type;
-        }
-        
-        function extractSheetId() {
-            const url = document.getElementById('sheetsUrl').value;
-            const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-            if (match) {
-                document.getElementById('sheetId').value = match[1];
-                showStatus('Sheet ID extracted successfully', 'success');
-            } else {
-                showStatus('Invalid Google Sheets URL', 'error');
+        function handleReset(event, wipeId) {
+            if (!isDragging) {
+                resetTimer(wipeId);
             }
         }
         
-        function saveSheetId() {
-            const id = document.getElementById('sheetId').value.trim();
-            if (id) {
-                currentSheetId = id;
-                localStorage.setItem('sheetId', id);
-                showStatus('Sheet ID saved: ' + id.substring(0, 20) + '...', 'success');
-            } else {
-                showStatus('Please enter a valid Sheet ID', 'error');
-            }
+        function resetTimer(wipeId) {
+            localStorage.setItem(wipeId, Date.now());
+            updateDisplays();
         }
         
-        async function readSheet() {
-            if (!currentSheetId) {
-                showStatus('Please save a Sheet ID first', 'error');
-                return;
-            }
-            
-            const range = document.getElementById('readRange').value;
-            const output = document.getElementById('readOutput');
-            output.innerHTML = '<p>Loading...</p>';
-            
-            try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${currentSheetId}/values/${encodeURIComponent(range)}?key=AIzaSyDZL5ZaAMSA9Z9Z0Z0Z0Z0Z0Z0Z0Z0Z0Z0`;
-                
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    throw new Error('Failed to read sheet. Make sure the sheet is public or use a valid API key.');
-                }
-                
-                const data = await response.json();
-                
-                if (!data.values || data.values.length === 0) {
-                    output.innerHTML = '<p>No data found in the specified range.</p>';
-                    return;
-                }
-                
-                let tableHtml = '<table><thead><tr>';
-                data.values[0].forEach(header => {
-                    tableHtml += `<th>${escapeHtml(header)}</th>`;
-                });
-                tableHtml += '</tr></thead><tbody>';
-                
-                for (let i = 1; i < data.values.length; i++) {
-                    tableHtml += '<tr>';
-                    data.values[i].forEach(cell => {
-                        tableHtml += `<td>${escapeHtml(cell)}</td>`;
-                    });
-                    tableHtml += '</tr>';
-                }
-                
-                tableHtml += '</tbody></table>';
-                output.innerHTML = tableHtml;
-                showStatus('Data read successfully', 'success');
-                
-            } catch (error) {
-                output.innerHTML = `<p>Error: ${error.message}</p>`;
-                showStatus('Error reading sheet: ' + error.message, 'error');
-            }
+        function updateDisplays() {
+            wipes.forEach((wipe, index) => {
+                const lastTime = localStorage.getItem(wipe);
+                const elapsed = lastTime ? Math.floor((Date.now() - lastTime) / 1000) : 0;
+                const timerElement = document.getElementById('timer' + (index + 1));
+                timerElement.textContent = formatTime(elapsed);
+                const dispenserId = 'dispenser' + (index + 1);
+                const dispenser = document.getElementById(dispenserId);
+                dispenser.style.backgroundColor = elapsed > 86400 ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+            });
         }
         
-        async function writeSheet() {
-            if (!currentSheetId) {
-                showStatus('Please save a Sheet ID first', 'error');
-                return;
-            }
-            
-            const range = document.getElementById('writeRange').value;
-            const dataStr = document.getElementById('writeData').value;
-            
-            try {
-                const data = JSON.parse(dataStr);
-                
-                if (!Array.isArray(data)) {
-                    throw new Error('Data must be a JSON array');
-                }
-                
-                showStatus('Write functionality requires API credentials. For now, you can use Google Apps Script:', 'info');
-                document.getElementById('writeOutput').style.display = 'block';
-                document.getElementById('writeOutput').innerHTML = `
-                    <p><strong>To enable writing:</strong></p>
-                    <ol>
-                        <li>Open your Google Sheet</li>
-                        <li>Go to Extensions → Apps Script</li>
-                        <li>Replace the code with this:</li>
-                    </ol>
-                    <pre style="background: #f0f0f0; padding: 10px; overflow-x: auto;">
-function doPost(e) {
-  const sheet = SpreadsheetApp.getActiveSheet();
-  const data = JSON.parse(e.postData.contents);
-  const range = data.range;
-  const values = data.values;
-  
-  sheet.getRange(range).setValues(values);
-  return ContentService.createTextOutput(JSON.stringify({success: true}));
-}
-                    </pre>
-                    <p>Then deploy as web app and use the deployment URL.</p>
-                `;
-                
-            } catch (error) {
-                showStatus('Invalid JSON format: ' + error.message, 'error');
-            }
-        }
-        
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
+        function savePosition(dispenserId) {
+            const dispenser = document.getElementById(dispenserId);
+            const position = {
+                left: dispenser.style.left,
+                top: dispenser.style.top
             };
-            return String(text).replace(/[&<>"']/g, m => map[m]);
+            localStorage.setItem('position_' + dispenserId, JSON.stringify(position));
         }
         
-        // Load saved sheet ID on page load
-        window.addEventListener('load', () => {
-            if (currentSheetId) {
-                document.getElementById('sheetId').value = currentSheetId;
-                showStatus('Loaded Sheet ID: ' + currentSheetId.substring(0, 20) + '...', 'info');
+        function loadPosition(dispenserId) {
+            const saved = localStorage.getItem('position_' + dispenserId);
+            if (saved) {
+                const position = JSON.parse(saved);
+                const dispenser = document.getElementById(dispenserId);
+                dispenser.style.left = position.left;
+                dispenser.style.top = position.top;
+            }
+        }
+
+        function formatTime(seconds) {
+            const days = Math.floor(seconds / (24 * 3600));
+            seconds %= (24 * 3600);
+            const hours = Math.floor(seconds / 3600);
+            seconds %= 3600;
+            const minutes = Math.floor(seconds / 60);
+            seconds %= 60;
+
+            let result = '';
+            if (days > 0) result += `${days}d `;
+            if (hours > 0) result += `${hours}h `;
+            if (minutes > 0) result += `${minutes}m `;
+            result += `${seconds}s`;
+
+            return result.trim();
+        }
+        
+        document.querySelectorAll('.dispenser').forEach(dispenser => {
+            loadPosition(dispenser.id);
+            
+            dispenser.addEventListener('mousedown', (e) => {
+                isDragging = false;
+                dragging = dispenser;
+                const rect = dispenser.getBoundingClientRect();
+                offset.x = e.clientX - rect.left;
+                offset.y = e.clientY - rect.top;
+            });
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (dragging) {
+                isDragging = true;
+                dragging.style.left = (e.clientX - offset.x) + 'px';
+                dragging.style.top = (e.clientY - offset.y) + 'px';
             }
         });
+        
+        document.addEventListener('mouseup', () => {
+            if (dragging) {
+                savePosition(dragging.id);
+            }
+            dragging = null;
+        });
+        
+        setInterval(updateDisplays, 1000);
+        updateDisplays();
     </script>
 </body>
 </html>
