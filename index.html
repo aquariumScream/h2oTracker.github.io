@@ -220,23 +220,22 @@ function resetAllTimers() {
             return res.join(' ');
         }
 
+        // 4. Dragging Logic (Instant Client-Side)
         function startDrag(e) {
-            // Skip if clicking a button inside the box
             if (e.target.tagName === 'BUTTON') return;
-        
-            // Handle touch vs mouse
+            
+            // Get correct coordinates for Mouse or Touch
             const event = e.type.includes('touch') ? e.touches[0] : e;
             
             dragging = e.currentTarget;
             isDragging = false;
             const rect = dragging.getBoundingClientRect();
             
-            // Calculate where inside the box you grabbed
             offset.x = event.clientX - rect.left;
             offset.y = event.clientY - rect.top;
             
-            // Bring to front while dragging
             dragging.style.zIndex = 1000;
+            dragging.style.cursor = 'grabbing';
         }
         
         function moveDrag(e) {
@@ -245,32 +244,41 @@ function resetAllTimers() {
             
             const event = e.type.includes('touch') ? e.touches[0] : e;
             
-            // Calculate new position in percentages
+            // Calculate new position %
             const xPct = (event.clientX - offset.x) / window.innerWidth * 100;
             const yPct = (event.clientY - offset.y) / window.innerHeight * 100;
             
+            // MOVE INSTANTLY ON CLIENT
             dragging.style.left = xPct + '%';
             dragging.style.top = yPct + '%';
             
-            // Prevent screen scrolling on mobile while dragging
             if (e.cancelable) e.preventDefault();
         }
-
+        
         function endDrag() {
-            if (dragging && isDragging) {
-                const isMobile = window.innerWidth <= 600;
-                const posKey = isMobile ? 'mobile' : 'desktop';
+            if (dragging) {
+                if (isDragging) {
+                    // Update local data object immediately
+                    const isMobile = window.innerWidth <= 600;
+                    const posKey = isMobile ? 'mobile' : 'desktop';
+                    
+                    if (!cloudData.positions[dragging.id]) cloudData.positions[dragging.id] = {};
+                    
+                    cloudData.positions[dragging.id][posKey] = {
+                        left: dragging.style.left,
+                        top: dragging.style.top
+                    };
+                    
+                    // Queue the cloud update (doesn't block the UI)
+                    queuePush();
+                }
                 
-                if (!cloudData.positions[dragging.id]) cloudData.positions[dragging.id] = {};
-                
-                cloudData.positions[dragging.id][posKey] = {
-                    left: dragging.style.left,
-                    top: dragging.style.top
-                };
-                pushCloudData();
+                dragging.style.zIndex = 1;
+                dragging.style.cursor = 'grab';
+                dragging = null;
+                // Small delay to prevent accidental button clicks after drag
+                setTimeout(() => { isDragging = false; }, 100);
             }
-            setTimeout(() => { isDragging = false; }, 100);
-            dragging = null;
         }
 
         // Attach listeners to ALL dispensers (1 through 10)
