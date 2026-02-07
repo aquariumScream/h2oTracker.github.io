@@ -101,11 +101,20 @@
             positions: {}, 
             marked: {}
         };
+        let cloudData = { timers: {}, positions: {}, marked: {} };
         let dragging = null;
-        let offset = { x: 0, y: 0 };
         let isDragging = false;
-        let isRed = false;
-
+        let saveTimeout; // For throttling API calls
+        
+        // 1. INITIAL FETCH
+        fetchCloudData();
+        
+        // 2. AUTO-POLL: Fetch updates from cloud every 10 seconds to save API quota
+        setInterval(fetchCloudData, 10000);
+        
+        // 3. UI UPDATE: Update seconds on screen every 1 second (Local only, no API cost)
+        setInterval(updateDisplays, 1000);
+        
         async function fetchCloudData() {
             try {
                 const response = await fetch(BIN_URL + "/latest", {
@@ -115,22 +124,17 @@
                 let raw = json.record;
                 cloudData.timers = raw.timers || {};
                 cloudData.positions = raw.positions || {};
-
+                cloudData.marked = raw.marked || {};
+        
                 if (!dragging) {
                     Object.keys(cloudData.positions).forEach(id => {
                         const el = document.getElementById(id);
                         if (el) {
-                            // Check if mobile or desktop positions exist
                             const isMobile = window.innerWidth <= 600;
                             const posKey = isMobile ? 'mobile' : 'desktop';
-                            
                             if (cloudData.positions[id][posKey]) {
                                 el.style.left = cloudData.positions[id][posKey].left;
                                 el.style.top = cloudData.positions[id][posKey].top;
-                            } else if (typeof cloudData.positions[id].left === 'string') {
-                                // Backward compatibility for old single-position format
-                                el.style.left = cloudData.positions[id].left;
-                                el.style.top = cloudData.positions[id].top;
                             }
                         }
                     });
@@ -138,7 +142,7 @@
                 updateDisplays();
             } catch (e) { console.error("Fetch failed", e); }
         }
-
+        
         async function pushCloudData() {
             try {
                 await fetch(BIN_URL, {
@@ -146,62 +150,67 @@
                     headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
                     body: JSON.stringify(cloudData)
                 });
+                console.log("Cloud synced.");
             } catch (e) { console.error("Save failed", e); }
         }
-
+        
+        // THROTTLE: Wait 2 seconds after last click before pushing to cloud
+        function queuePush() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(pushCloudData, 2000);
+        }
+        
         function handleReset(wipeId, action) {
             if (isDragging) return;
         
             if (action === 'reset') {
                 cloudData.timers[wipeId] = Date.now();
-                // Resetting the timer should also un-mark the button
                 cloudData.marked[wipeId] = false;
             } else if (action === 'mark') {
-                // Toggle the marked state only
                 cloudData.marked[wipeId] = !cloudData.marked[wipeId];
             }
         
             updateDisplays();
-            pushCloudData();
+            queuePush(); 
         }
         
         function updateDisplays() {
-            for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= 10; i++) { // Updated to 10
                 const wipeId = 'wipe' + i;
                 const lastTime = cloudData.timers[wipeId];
                 const elapsed = lastTime ? Math.floor((Date.now() - lastTime) / 1000) : 0;
                 const isMarked = cloudData.marked[wipeId];
                 
-                // Update timer text
-                document.getElementById('timer' + i).textContent = formatTime(elapsed);
+                const timerEl = document.getElementById('timer' + i);
+                if (timerEl) timerEl.textContent = formatTime(elapsed);
                 
-                // Dispenser box logic: red if > 1 day
                 const dispenser = document.getElementById('dispenser' + i);
                 const isOverOneDay = elapsed > 86400;
-                dispenser.style.backgroundColor = isOverOneDay ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
         
-                // Mark button logic (for Dispenser 1)
+                if (dispenser) {
+                    dispenser.style.backgroundColor = isOverOneDay ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+                }
+        
                 const markBtn = document.getElementById('markBtn' + i);
                 if (markBtn) {
-                    if (isOverOneDay) {
-                        // If over 1 day, force it to stay red
-                        markBtn.style.backgroundColor = 'red';
-                    } else {
-                        // If under 1 day, toggle based on user click
-                        markBtn.style.backgroundColor = isMarked ? 'red' : '';
-                    }
+                    // Logic: Red if over 1 day OR if manually toggled red
+                    markBtn.style.backgroundColor = (isOverOneDay || isMarked) ? 'red' : '';
+                    markBtn.style.color = (isOverOneDay || isMarked) ? 'white' : '';
                 }
             }
         }
 
-        function resetAllTimers() {
-            if (confirm("Reset ALL dispensers?")) {
-                const now = Date.now();
-                for (let i = 1; i <= 10; i++) cloudData.timers['wipe' + i] = now;
-                updateDisplays();
-                pushCloudData();
-            }
+function resetAllTimers() {
+    if (confirm("Reset ALL dispensers?")) {
+        const now = Date.now();
+        for (let i = 1; i <= 10; i++) {
+            cloudData.timers['wipe' + i] = now;
+            cloudData.marked['wipe' + i] = false;
         }
+        updateDisplays();
+        queuePush();
+    }
+}
 
         function formatTime(seconds) {
             const d = Math.floor(seconds / 86400);
