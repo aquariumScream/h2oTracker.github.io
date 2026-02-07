@@ -221,23 +221,38 @@ function resetAllTimers() {
         }
 
         function startDrag(e) {
-            const event = e.type.includes('touch') ? e.touches[0] : e;
+            // Skip if clicking a button inside the box
             if (e.target.tagName === 'BUTTON') return;
+        
+            // Handle touch vs mouse
+            const event = e.type.includes('touch') ? e.touches[0] : e;
+            
             dragging = e.currentTarget;
             isDragging = false;
             const rect = dragging.getBoundingClientRect();
+            
+            // Calculate where inside the box you grabbed
             offset.x = event.clientX - rect.left;
             offset.y = event.clientY - rect.top;
+            
+            // Bring to front while dragging
+            dragging.style.zIndex = 1000;
         }
-
+        
         function moveDrag(e) {
             if (!dragging) return;
             isDragging = true;
+            
             const event = e.type.includes('touch') ? e.touches[0] : e;
+            
+            // Calculate new position in percentages
             const xPct = (event.clientX - offset.x) / window.innerWidth * 100;
             const yPct = (event.clientY - offset.y) / window.innerHeight * 100;
+            
             dragging.style.left = xPct + '%';
             dragging.style.top = yPct + '%';
+            
+            // Prevent screen scrolling on mobile while dragging
             if (e.cancelable) e.preventDefault();
         }
 
@@ -258,15 +273,24 @@ function resetAllTimers() {
             dragging = null;
         }
 
-        document.querySelectorAll('.dispenser').forEach(el => {
-            el.addEventListener('mousedown', startDrag);
-        });
+        // Attach listeners to ALL dispensers (1 through 10)
+        function initDraggables() {
+            document.querySelectorAll('.dispenser').forEach(el => {
+                // Mouse Events
+                el.addEventListener('mousedown', startDrag);
+                // Touch Events (Mobile)
+                el.addEventListener('touchstart', startDrag, { passive: false });
+            });
+        }
+        
+        // Global listeners for movement and release
         document.addEventListener('mousemove', moveDrag);
+        document.addEventListener('touchmove', moveDrag, { passive: false });
         document.addEventListener('mouseup', endDrag);
-
-        fetchCloudData();
-        setInterval(updateDisplays, 1000);
-        setInterval(fetchCloudData, 10000); // Increased sync to 10s to reduce API calls
+        document.addEventListener('touchend', endDrag);
+        
+        // Run the attachment
+        initDraggables();
     </script>
 </body>
 </html>
