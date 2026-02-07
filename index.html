@@ -35,8 +35,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
             font-size: 12px;
         }
-
-        /* DESKTOP BOX SIZE */
+        
         .dispenser {
             position: absolute;
             width: 85px;
@@ -49,26 +48,6 @@
             cursor: grab;
             user-select: none;
             touch-action: none;
-        }
-
-        /* MOBILE BOX SIZE & STYLES */
-        @media (max-width: 600px) {
-            .dispenser {
-                width: 60px; /* Smaller boxes for mobile */
-                padding: 5px;
-                border-width: 1.5px;
-            }
-            .dispenser button {
-                padding: 4px 6px !important;
-                font-size: 10px !important;
-            }
-            .dispenser p {
-                font-size: 11px !important;
-            }
-            #reset-all-btn {
-                padding: 6px 10px;
-                font-size: 10px;
-            }
         }
 
         .dispenser:active { cursor: grabbing; }
@@ -101,7 +80,7 @@
 
     <button id="reset-all-btn" onclick="resetAllTimers()">Reset All</button>
 
-    <div id="dispenser1" class="dispenser"><button onclick="handleReset('wipe1')">Reset</button><p id="timer1">0s</p></div>
+    <div id="dispenser1" class="dispenser"><button onclick="handleReset('wipe1')">Reset</button><button onclick="handleReset('wipe1')">Mark</button><p id="timer1">0s</p></div>
     <div id="dispenser2" class="dispenser"><button onclick="handleReset('wipe2')">Reset</button><p id="timer2">0s</p></div>
     <div id="dispenser3" class="dispenser"><button onclick="handleReset('wipe3')">Reset</button><p id="timer3">0s</p></div>
     <div id="dispenser4" class="dispenser"><button onclick="handleReset('wipe4')">Reset</button><p id="timer4">0s</p></div>
@@ -116,10 +95,15 @@
         const MASTER_KEY = "$2a$10$hL5VMPRJSM1IAtw2DZ70GeBlpHNxWgMQU0VasqFgvRhiakRmmid.O";
         const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-        let cloudData = { timers: {}, positions: {} };
+        let cloudData = { 
+            timers: {}, 
+            positions: {}, 
+            marked: {}
+        };
         let dragging = null;
         let offset = { x: 0, y: 0 };
         let isDragging = false;
+        let isRed = false;
 
         async function fetchCloudData() {
             try {
@@ -164,11 +148,48 @@
             } catch (e) { console.error("Save failed", e); }
         }
 
-        function handleReset(wipeId) {
-            if (!isDragging) {
+        function handleReset(wipeId, action) {
+            if (isDragging) return;
+        
+            if (action === 'reset') {
                 cloudData.timers[wipeId] = Date.now();
-                updateDisplays();
-                pushCloudData();
+                // Resetting the timer should also un-mark the button
+                cloudData.marked[wipeId] = false;
+            } else if (action === 'mark') {
+                // Toggle the marked state only
+                cloudData.marked[wipeId] = !cloudData.marked[wipeId];
+            }
+        
+            updateDisplays();
+            pushCloudData();
+        }
+        
+        function updateDisplays() {
+            for (let i = 1; i <= 9; i++) {
+                const wipeId = 'wipe' + i;
+                const lastTime = cloudData.timers[wipeId];
+                const elapsed = lastTime ? Math.floor((Date.now() - lastTime) / 1000) : 0;
+                const isMarked = cloudData.marked[wipeId];
+                
+                // Update timer text
+                document.getElementById('timer' + i).textContent = formatTime(elapsed);
+                
+                // Dispenser box logic: red if > 1 day
+                const dispenser = document.getElementById('dispenser' + i);
+                const isOverOneDay = elapsed > 86400;
+                dispenser.style.backgroundColor = isOverOneDay ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+        
+                // Mark button logic (for Dispenser 1)
+                const markBtn = document.getElementById('markBtn' + i);
+                if (markBtn) {
+                    if (isOverOneDay) {
+                        // If over 1 day, force it to stay red
+                        markBtn.style.backgroundColor = 'red';
+                    } else {
+                        // If under 1 day, toggle based on user click
+                        markBtn.style.backgroundColor = isMarked ? 'red' : '';
+                    }
+                }
             }
         }
 
@@ -178,17 +199,6 @@
                 for (let i = 1; i <= 9; i++) cloudData.timers['wipe' + i] = now;
                 updateDisplays();
                 pushCloudData();
-            }
-        }
-
-        function updateDisplays() {
-            for (let i = 1; i <= 9; i++) {
-                const wipeId = 'wipe' + i;
-                const lastTime = cloudData.timers[wipeId];
-                const elapsed = lastTime ? Math.floor((Date.now() - lastTime) / 1000) : 0;
-                document.getElementById('timer' + i).textContent = formatTime(elapsed);
-                const dispenser = document.getElementById('dispenser' + i);
-                dispenser.style.backgroundColor = elapsed > 86400 ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
             }
         }
 
@@ -245,12 +255,9 @@
 
         document.querySelectorAll('.dispenser').forEach(el => {
             el.addEventListener('mousedown', startDrag);
-            el.addEventListener('touchstart', startDrag, {passive: false});
         });
         document.addEventListener('mousemove', moveDrag);
-        document.addEventListener('touchmove', moveDrag, {passive: false});
         document.addEventListener('mouseup', endDrag);
-        document.addEventListener('touchend', endDrag);
 
         fetchCloudData();
         setInterval(updateDisplays, 1000);
