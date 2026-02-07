@@ -92,44 +92,49 @@
     <div id="dispenser10" class="dispenser"><button onclick="handleReset('wipe10', 'reset')">Reset</button><button id="markBtn10" onclick="handleReset('wipe10', 'mark')">Mark</button><p id="timer10">0s</p></div>
 
     <script>
-        const BIN_ID = "69879ea4d0ea881f40a89400";
+        const BIN_ID = "69845e10d0ea881f40a27d55";
         const MASTER_KEY = "$2a$10$hL5VMPRJSM1IAtw2DZ70GeBlpHNxWgMQU0VasqFgvRhiakRmmid.O";
-        const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+        const BIN_URL = `https://api.jsonbin.io{BIN_ID}`;
         
+        // Single declaration
         let cloudData = { timers: {}, positions: {}, marked: {} };
         let dragging = null;
+        let offset = { x: 0, y: 0 };
         let isDragging = false;
-        let saveTimeout; // For throttling API calls
+        let saveTimeout;
         
-        // 1. INITIAL FETCH
+        // 1. Initial Fetch
         fetchCloudData();
         
-        // 2. AUTO-POLL: Fetch updates from cloud every 10 seconds to save API quota
-        setInterval(fetchCloudData, 10000);
-        
-        // 3. UI UPDATE: Update seconds on screen every 1 second (Local only, no API cost)
+        // 2. Refresh UI every 1s (local) & Sync Cloud every 15s
         setInterval(updateDisplays, 1000);
+        setInterval(fetchCloudData, 15000);
         
         async function fetchCloudData() {
             try {
                 const response = await fetch(BIN_URL + "/latest", {
                     headers: { "X-Master-Key": MASTER_KEY }
                 });
+                if (!response.ok) return; // Stop if API limit reached
+                
                 const json = await response.json();
-                let raw = json.record;
+                const raw = json.record || {};
+                
                 cloudData.timers = raw.timers || {};
                 cloudData.positions = raw.positions || {};
                 cloudData.marked = raw.marked || {};
         
+                // Only snap boxes to cloud positions if we aren't currently dragging
                 if (!dragging) {
                     Object.keys(cloudData.positions).forEach(id => {
                         const el = document.getElementById(id);
                         if (el) {
                             const isMobile = window.innerWidth <= 600;
                             const posKey = isMobile ? 'mobile' : 'desktop';
-                            if (cloudData.positions[id][posKey]) {
-                                el.style.left = cloudData.positions[id][posKey].left;
-                                el.style.top = cloudData.positions[id][posKey].top;
+                            const pos = cloudData.positions[id][posKey] || cloudData.positions[id];
+                            if (pos && pos.left) {
+                                el.style.left = pos.left;
+                                el.style.top = pos.top;
                             }
                         }
                     });
@@ -138,88 +143,21 @@
             } catch (e) { console.error("Fetch failed", e); }
         }
         
-        async function pushCloudData() {
-            try {
-                await fetch(BIN_URL, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
-                    body: JSON.stringify(cloudData)
-                });
-                console.log("Cloud synced.");
-            } catch (e) { console.error("Save failed", e); }
-        }
-        
-        // THROTTLE: Wait 2 seconds after last click before pushing to cloud
+        // 3. The "Save" Function (Throttled)
         function queuePush() {
             clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(pushCloudData, 2000);
+            saveTimeout = setTimeout(async () => {
+                try {
+                    await fetch(BIN_URL, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
+                        body: JSON.stringify(cloudData)
+                    });
+                    console.log("Positions saved to cloud.");
+                } catch (e) { console.error("Save failed", e); }
+            }, 2000); // Wait 2s after last movement to save
         }
         
-        function handleReset(wipeId, action) {
-            if (isDragging) return;
-        
-            if (action === 'reset') {
-                cloudData.timers[wipeId] = Date.now();
-                cloudData.marked[wipeId] = false;
-            } else if (action === 'mark') {
-                cloudData.marked[wipeId] = !cloudData.marked[wipeId];
-            }
-        
-            updateDisplays();
-            queuePush(); 
-        }
-        
-        function updateDisplays() {
-            for (let i = 1; i <= 10; i++) { // Updated to 10
-                const wipeId = 'wipe' + i;
-                const lastTime = cloudData.timers[wipeId];
-                const elapsed = lastTime ? Math.floor((Date.now() - lastTime) / 1000) : 0;
-                const isMarked = cloudData.marked[wipeId];
-                
-                const timerEl = document.getElementById('timer' + i);
-                if (timerEl) timerEl.textContent = formatTime(elapsed);
-                
-                const dispenser = document.getElementById('dispenser' + i);
-                const isOverOneDay = elapsed > 86400;
-        
-                if (dispenser) {
-                    dispenser.style.backgroundColor = isOverOneDay ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
-                }
-        
-                const markBtn = document.getElementById('markBtn' + i);
-                if (markBtn) {
-                    // Logic: Red if over 1 day OR if manually toggled red
-                    markBtn.style.backgroundColor = (isOverOneDay || isMarked) ? 'red' : '';
-                    markBtn.style.color = (isOverOneDay || isMarked) ? 'white' : '';
-                }
-            }
-        }
-
-function resetAllTimers() {
-    if (confirm("Reset ALL dispensers?")) {
-        const now = Date.now();
-        for (let i = 1; i <= 10; i++) {
-            cloudData.timers['wipe' + i] = now;
-            cloudData.marked['wipe' + i] = false;
-        }
-        updateDisplays();
-        queuePush();
-    }
-}
-
-        function formatTime(seconds) {
-            const d = Math.floor(seconds / 86400);
-            const h = Math.floor((seconds % 86400) / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = seconds % 60;
-            let res = [];
-            if (d > 0) res.push(d + 'd');
-            if (h > 0) res.push(h + 'h');
-            if (m > 0) res.push(m + 'm');
-            res.push(s + 's');
-            return res.join(' ');
-        }
-
         // 4. Dragging Logic (Instant Client-Side)
         function startDrag(e) {
             if (e.target.tagName === 'BUTTON') return;
@@ -280,25 +218,65 @@ function resetAllTimers() {
                 setTimeout(() => { isDragging = false; }, 100);
             }
         }
-
-        // Attach listeners to ALL dispensers (1 through 10)
-        function initDraggables() {
-            document.querySelectorAll('.dispenser').forEach(el => {
-                // Mouse Events
-                el.addEventListener('mousedown', startDrag);
-                // Touch Events (Mobile)
-                el.addEventListener('touchstart', startDrag, { passive: false });
-            });
+        
+        // 5. Timer & Mark Logic
+        function handleReset(wipeId, action) {
+            if (isDragging) return;
+            if (action === 'reset') {
+                cloudData.timers[wipeId] = Date.now();
+                cloudData.marked[wipeId] = false;
+            } else if (action === 'mark') {
+                cloudData.marked[wipeId] = !cloudData.marked[wipeId];
+            }
+            updateDisplays();
+            queuePush();
         }
         
-        // Global listeners for movement and release
+        function updateDisplays() {
+            for (let i = 1; i <= 10; i++) {
+                const wipeId = 'wipe' + i;
+                const lastTime = cloudData.timers[wipeId];
+                const elapsed = lastTime ? Math.floor((Date.now() - lastTime) / 1000) : 0;
+                const isMarked = cloudData.marked[wipeId];
+                
+                const timerEl = document.getElementById('timer' + i);
+                if (timerEl) timerEl.textContent = formatTime(elapsed);
+                
+                const dispenser = document.getElementById('dispenser' + i);
+                const isOverOneDay = elapsed > 86400;
+        
+                if (dispenser) {
+                    dispenser.style.backgroundColor = isOverOneDay ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+                }
+        
+                const markBtn = document.getElementById('markBtn' + i);
+                if (markBtn) {
+                    markBtn.style.backgroundColor = (isOverOneDay || isMarked) ? 'red' : '';
+                    markBtn.style.color = (isOverOneDay || isMarked) ? 'white' : '';
+                }
+            }
+        }
+        
+        function formatTime(s) {
+            const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
+            let res = [];
+            if (d > 0) res.push(d + 'd');
+            if (h > 0) res.push(h + 'h');
+            if (m > 0) res.push(m + 'm');
+            res.push((s % 60) + 's');
+            return res.join(' ');
+        }
+        
+        // --- ATTACH LISTENERS ---
+        document.querySelectorAll('.dispenser').forEach(el => {
+            el.addEventListener('mousedown', startDrag);
+            el.addEventListener('touchstart', startDrag, {passive: false});
+        });
+        
         document.addEventListener('mousemove', moveDrag);
-        document.addEventListener('touchmove', moveDrag, { passive: false });
+        document.addEventListener('touchmove', moveDrag, {passive: false});
         document.addEventListener('mouseup', endDrag);
         document.addEventListener('touchend', endDrag);
-        
-        // Run the attachment
-        initDraggables();
     </script>
 </body>
 </html>
